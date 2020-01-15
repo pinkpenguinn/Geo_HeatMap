@@ -150,6 +150,10 @@ class Generator:
                        zoom_start=map_zoom_start,
                        tiles=tiles)
 
+        for lat, lon, freq in map_data:
+            if freq >= 100:
+                folium.Marker(location=[lat, lon]).add_to(m)
+
         # Generate heat map
         heatmap = HeatMap(map_data,
                           max_val=self.max_magnitude,
