@@ -14,6 +14,9 @@ import webbrowser
 from xml.etree import ElementTree
 from xml.dom import minidom
 import zipfile
+from geopy.geocoders import Nominatim
+
+
 
 
 class Generator:
@@ -150,9 +153,17 @@ class Generator:
                        zoom_start=map_zoom_start,
                        tiles=tiles)
 
+        locator = Nominatim(user_agent="geocoder")
+
         for lat, lon, freq in map_data:
-            if freq >= 100:
-                folium.Marker(location=[lat, lon]).add_to(m)
+            if freq >= 300:
+
+                coordinates = lat, lon
+                location = locator.reverse(coordinates)
+                # address = location.address
+                timesvisited = location.address + "\nVisited " + str(freq) + " times"
+
+                folium.Marker(location=[lat, lon], popup=timesvisited).add_to(m)
 
         # Generate heat map
         heatmap = HeatMap(map_data,
