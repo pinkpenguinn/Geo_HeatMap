@@ -148,6 +148,12 @@ class Generator:
         map_data = [(coords[0], coords[1], magnitude)
                     for coords, magnitude in self.coordinates.items()]
 
+        timesVisited = [x[2] for x in map_data]
+        timesVisited.sort(reverse=True)
+        top20Visited = timesVisited[19]
+
+
+
         # Generate map
         m = folium.Map(location=self.max_coordinates,
                        zoom_start=map_zoom_start,
@@ -156,7 +162,7 @@ class Generator:
         locator = Nominatim(user_agent="geocoder", timeout = None)
 
         for lat, lon, freq in map_data:
-            if freq >= 100:
+            if freq >= top20Visited:
 
                 coordinates = lat, lon
                 location = locator.reverse(coordinates)
