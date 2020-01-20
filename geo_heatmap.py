@@ -153,10 +153,10 @@ class Generator:
                        zoom_start=map_zoom_start,
                        tiles=tiles)
 
-        locator = Nominatim(user_agent="geocoder")
+        locator = Nominatim(user_agent="geocoder", timeout = None)
 
         for lat, lon, freq in map_data:
-            if freq >= 300:
+            if freq >= 100:
 
                 coordinates = lat, lon
                 location = locator.reverse(coordinates)
