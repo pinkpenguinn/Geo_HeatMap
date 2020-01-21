@@ -14,6 +14,10 @@ import webbrowser
 from xml.etree import ElementTree
 from xml.dom import minidom
 import zipfile
+import datetime
+from folium.plugins import HeatMapWithTime
+import pandas as pd
+
 
 
 class Generator:
@@ -21,6 +25,7 @@ class Generator:
         self.coordinates = collections.defaultdict(int)
         self.max_coordinates = (0, 0)
         self.max_magnitude = 0
+
 
     def loadJSONData(self, json_file, date_range):
         """Loads the Google location data from the given json file.
@@ -37,11 +42,15 @@ class Generator:
             for i, loc in enumerate(data["locations"]):
                 if "latitudeE7" not in loc or "longitudeE7" not in loc:
                     continue
+
+                timestamp = int(loc['timestampMs'])
+                year = datetime.datetime.fromtimestamp(timestamp/1000).year
                 coords = (round(loc["latitudeE7"] / 1e7, 6),
-                           round(loc["longitudeE7"] / 1e7, 6))
+                           round(loc["longitudeE7"] / 1e7, 6), year)
 
                 if timestampInRange(loc['timestampMs'], date_range):
                     self.updateCoord(coords)
+
                 pb.update(i)
 
     def streamJSONData(self, json_file, date_range):
@@ -136,14 +145,25 @@ class Generator:
     def updateCoord(self, coords):
         self.coordinates[coords] += 1
         if self.coordinates[coords] > self.max_magnitude:
-            self.max_coordinates = coords
+            self.max_coordinates = coords[0], coords[1]
             self.max_magnitude = self.coordinates[coords]
 
     def generateMap(self, tiles, map_zoom_start=6, heatmap_radius=7,
                     heatmap_blur=4, heatmap_min_opacity=0.2,
                     heatmap_max_zoom=4):
-        map_data = [(coords[0], coords[1], magnitude)
+        # map_data = [(coords[0], coords[1], magnitude)
+        #             for coords, magnitude in self.coordinates.items()]
+
+        map_data_withYear = [(coords[0], coords[1], magnitude, coords[2])
                     for coords, magnitude in self.coordinates.items()]
+
+        dfData = pd.DataFrame(map_data_withYear, columns=['Lat', 'Long', 'Weight', 'Year'])
+
+
+        year_list = []
+        for year in dfData.Year.sort_values().unique():
+            year_list.append(dfData.loc[dfData.Year == year, ['Lat', 'Long', 'Weight']].groupby(['Lat', 'Long']).sum().reset_index().values.tolist())
+
 
         # Generate map
         m = folium.Map(location=self.max_coordinates,
@@ -151,14 +171,22 @@ class Generator:
                        tiles=tiles)
 
         # Generate heat map
-        heatmap = HeatMap(map_data,
-                          max_val=self.max_magnitude,
-                          min_opacity=heatmap_min_opacity,
-                          radius=heatmap_radius,
-                          blur=heatmap_blur,
-                          max_zoom=heatmap_max_zoom)
+        # heatmap = HeatMap(map_data,
+        #                   max_val=self.max_magnitude,
+        #                   min_opacity=heatmap_min_opacity,
+        #                   radius=heatmap_radius,
+        #                   blur=heatmap_blur,
+        #                   max_zoom=heatmap_max_zoom)
 
-        m.add_child(heatmap)
+
+        # m.add_child(heatmap)
+
+
+        folium.plugins.HeatMapWithTime(year_list,
+                                       min_opacity= heatmap_min_opacity, use_local_extrema= True,
+                                       radius=heatmap_radius,
+                                       gradient={0.2: 'blue', 0.4: 'lime', 0.6: 'orange', 1: 'red'}).add_to(m)
+
         return m
 
     def run(self, data_files, output_file, date_range, stream_data, tiles):
