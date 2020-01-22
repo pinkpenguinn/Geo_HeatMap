@@ -19,13 +19,11 @@ from folium.plugins import HeatMapWithTime
 import pandas as pd
 
 
-
 class Generator:
     def __init__(self):
         self.coordinates = collections.defaultdict(int)
         self.max_coordinates = (0, 0)
         self.max_magnitude = 0
-
 
     def loadJSONData(self, json_file, date_range):
         """Loads the Google location data from the given json file.
@@ -44,9 +42,9 @@ class Generator:
                     continue
 
                 timestamp = int(loc['timestampMs'])
-                year = datetime.datetime.fromtimestamp(timestamp/1000).year
+                year = datetime.datetime.fromtimestamp(timestamp / 1000).year
                 coords = (round(loc["latitudeE7"] / 1e7, 6),
-                           round(loc["longitudeE7"] / 1e7, 6), year)
+                          round(loc["longitudeE7"] / 1e7, 6), year)
 
                 if timestampInRange(loc['timestampMs'], date_range):
                     self.updateCoord(coords)
@@ -65,7 +63,7 @@ class Generator:
         # Estimate location amount
         max_value_est = sum(1 for line in json_file) / 13
         json_file.seek(0)
-        
+
         locations = ijson.items(json_file, "locations.item")
         w = [Bar(), Percentage(), " ", ETA()]
         with ProgressBar(max_value=max_value_est, widgets=w) as pb:
@@ -73,11 +71,11 @@ class Generator:
                 if "latitudeE7" not in loc or "longitudeE7" not in loc:
                     continue
                 coords = (round(loc["latitudeE7"] / 1e7, 6),
-                            round(loc["longitudeE7"] / 1e7, 6))
+                          round(loc["longitudeE7"] / 1e7, 6))
 
                 if timestampInRange(loc['timestampMs'], date_range):
                     self.updateCoord(coords)
-                    
+
                 if i > max_value_est:
                     max_value_est = i
                     pb.max_value = i
@@ -124,7 +122,8 @@ class Generator:
         with zip_file.open(html_path) as read_file:
             soup = BeautifulSoup(read_file, "html.parser")
         (elem,) = soup.select(
-            "#service-tile-LOCATION_HISTORY > button > div.service_summary > div > h1[data-english-name=LOCATION_HISTORY]")
+            "#service-tile-LOCATION_HISTORY > button > div.service_summary > div > h1["
+            "data-english-name=LOCATION_HISTORY]")
         name = elem["data-folder-name"]
         (data_path,) = fnmatch.filter(
             namelist,
@@ -140,7 +139,7 @@ class Generator:
                 self.loadKMLData(read_file, date_range)
         else:
             raise ValueError("unsupported extension for {!r}: only .json and .kml supported"
-                .format(file_name))
+                             .format(file_name))
 
     def updateCoord(self, coords):
         self.coordinates[coords] += 1
@@ -154,16 +153,18 @@ class Generator:
         # map_data = [(coords[0], coords[1], magnitude)
         #             for coords, magnitude in self.coordinates.items()]
 
-        map_data_withYear = [(coords[0], coords[1], magnitude, coords[2])
-                    for coords, magnitude in self.coordinates.items()]
+        map_data_with_year = [(coords[0], coords[1], magnitude, coords[2])
+                              for coords, magnitude in self.coordinates.items()]
 
-        dfData = pd.DataFrame(map_data_withYear, columns=['Lat', 'Long', 'Weight', 'Year'])
+        df_data = pd.DataFrame(map_data_with_year, columns=['Lat', 'Long', 'Weight', 'Year'])
 
+        year_list = df_data.Year.sort_values().unique()
 
-        year_list = []
-        for year in dfData.Year.sort_values().unique():
-            year_list.append(dfData.loc[dfData.Year == year, ['Lat', 'Long', 'Weight']].groupby(['Lat', 'Long']).sum().reset_index().values.tolist())
-
+        map_data_by_year = []
+        for year in year_list:
+            map_data_by_year.append(df_data.loc[df_data.Year == year,
+                                                ['Lat', 'Long', 'Weight']].groupby(
+                ['Lat', 'Long']).sum().reset_index().values.tolist())
 
         # Generate map
         m = folium.Map(location=self.max_coordinates,
@@ -178,12 +179,10 @@ class Generator:
         #                   blur=heatmap_blur,
         #                   max_zoom=heatmap_max_zoom)
 
-
         # m.add_child(heatmap)
 
-
-        folium.plugins.HeatMapWithTime(year_list,
-                                       min_opacity= heatmap_min_opacity, use_local_extrema= True,
+        folium.plugins.HeatMapWithTime(map_data_by_year,
+                                       min_opacity=heatmap_min_opacity,
                                        radius=heatmap_radius,
                                        gradient={0.2: 'blue', 0.4: 'lime', 0.6: 'orange', 1: 'red'}).add_to(m)
 
@@ -199,8 +198,8 @@ class Generator:
         """
         for i, data_file in enumerate(data_files):
             print("\n({}/{}) Loading data from {}".format(
-                i + 1, 
-                len(data_files) + 2, 
+                i + 1,
+                len(data_files) + 2,
                 data_file))
             if data_file.endswith(".zip"):
                 self.loadZIPData(data_file, date_range)
@@ -215,9 +214,9 @@ class Generator:
             else:
                 raise NotImplementedError(
                     "Unsupported file extension for {!r}".format(data_file))
-                
+
         print("\n({}/{}) Generating heatmap".format(
-            len(data_files) + 1, 
+            len(data_files) + 1,
             len(data_files) + 2))
         m = self.generateMap(tiles)
         print("\n({}/{}) Saving map to {}\n".format(
@@ -231,9 +230,10 @@ if __name__ == "__main__":
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument(
         "files", metavar="file", type=str, nargs='+', help="Any of the following files:\n"
-        "1. Your location history JSON file from Google Takeout\n"
-        "2. Your location history KML file from Google Takeout\n"
-        "3. The takeout-*.zip raw download from Google Takeout \nthat contains either of the above files")
+                                                           "1. Your location history JSON file from Google Takeout\n"
+                                                           "2. Your location history KML file from Google Takeout\n"
+                                                           "3. The takeout-*.zip raw download from Google Takeout "
+                                                           "\nthat contains either of the above files")
     parser.add_argument("-o", "--output", dest="output", metavar="", type=str, required=False,
                         help="Path of heatmap HTML output file.", default="heatmap.html")
     parser.add_argument("--min-date", dest="min_date", metavar="YYYY-MM-DD", type=str, required=False,
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--stream", dest="stream", action="store_true", help="Option to iteratively load data.")
     parser.add_argument("--map", "-m", dest="map", metavar="MAP", type=str, required=False, default="OpenStreetMap",
                         help="The name of the map tiles you want to use.\n" \
-                        "(e.g. 'OpenStreetMap', 'StamenTerrain', 'StamenToner', 'StamenWatercolor')")
+                             "(e.g. 'OpenStreetMap', 'StamenTerrain', 'StamenToner', 'StamenWatercolor')")
 
     args = parser.parse_args()
     data_file = args.files
