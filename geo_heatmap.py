@@ -53,7 +53,7 @@ class Generator:
 
     def streamJSONData(self, json_file, date_range):
         """Stream the Google location data from the given json file.
-        
+
         Arguments:
             json_file {file} -- An open file-like object with JSON-encoded
                 Google location data.
@@ -183,7 +183,7 @@ class Generator:
 
         folium.plugins.HeatMapWithTime(map_data_by_year,
                                        min_opacity=heatmap_min_opacity,
-                                       radius=heatmap_radius,
+                                       radius=heatmap_radius, index= year_list.tolist(),
                                        gradient={0.2: 'blue', 0.4: 'lime', 0.6: 'orange', 1: 'red'}).add_to(m)
 
         return m
