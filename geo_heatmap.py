@@ -15,6 +15,7 @@ from xml.etree import ElementTree
 from xml.dom import minidom
 import zipfile
 from geopy.geocoders import Nominatim
+from folium.plugins import MarkerCluster
 
 
 
@@ -148,7 +149,7 @@ class Generator:
         map_data = [(coords[0], coords[1], magnitude)
                     for coords, magnitude in self.coordinates.items()]
 
-        timesVisited = [x[2] for x in map_data]
+        timesVisited = [weight[2] for weight in map_data]
         timesVisited.sort(reverse=True)
         top20Visited = timesVisited[19]
 
@@ -160,6 +161,7 @@ class Generator:
                        tiles=tiles)
 
         locator = Nominatim(user_agent="geocoder", timeout = None)
+        mc = MarkerCluster()
 
         for lat, lon, freq in map_data:
             if freq >= top20Visited:
@@ -169,7 +171,8 @@ class Generator:
                 # address = location.address
                 timesvisited = location.address + "\nVisited " + str(freq) + " times"
 
-                folium.Marker(location=[lat, lon], popup=timesvisited).add_to(m)
+                mc.add_child(folium.Marker(location=[lat, lon], popup=timesvisited))
+                mc.add_to(m)
 
         # Generate heat map
         heatmap = HeatMap(map_data,
