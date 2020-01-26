@@ -8,6 +8,7 @@ from folium.plugins import HeatMap
 import ijson
 import json
 import os
+from geopy import Nominatim
 from progressbar import ProgressBar, Bar, ETA, Percentage
 from utils import *
 import webbrowser
@@ -150,8 +151,12 @@ class Generator:
     def generateMap(self, tiles, map_zoom_start=6, heatmap_radius=7,
                     heatmap_blur=4, heatmap_min_opacity=0.2,
                     heatmap_max_zoom=4):
-        # map_data = [(coords[0], coords[1], magnitude)
-        #             for coords, magnitude in self.coordinates.items()]
+        map_data = [(coords[0], coords[1], magnitude)
+                    for coords, magnitude in self.coordinates.items()]
+
+        timesVisited = [x[2] for x in map_data]
+        timesVisited.sort(reverse=True)
+        top20Visited = timesVisited[19]
 
         map_data_with_year = [(coords[0], coords[1], magnitude, coords[2])
                               for coords, magnitude in self.coordinates.items()]
@@ -172,19 +177,33 @@ class Generator:
                        tiles=tiles)
 
         # Generate heat map
-        # heatmap = HeatMap(map_data,
-        #                   max_val=self.max_magnitude,
-        #                   min_opacity=heatmap_min_opacity,
-        #                   radius=heatmap_radius,
-        #                   blur=heatmap_blur,
-        #                   max_zoom=heatmap_max_zoom)
 
-        # m.add_child(heatmap)
+        heatmap = HeatMap(map_data,
+                          max_val=self.max_magnitude,
+                          min_opacity=heatmap_min_opacity,
+                          radius=heatmap_radius,
+                          blur=heatmap_blur,
+                          max_zoom=heatmap_max_zoom).add_to(folium.FeatureGroup(name="Combined HeatMap").add_to(m))
 
-        folium.plugins.HeatMapWithTime(map_data_by_year,
+        locator = Nominatim(user_agent="geocoder", timeout=None)
+
+
+        for lat, lon, freq in map_data:
+            if freq >= top20Visited:
+                coordinates = lat, lon
+                location = locator.reverse(coordinates)
+                # address = location.address
+                timesvisited = location.address + "\nVisited " + str(freq) + " times"
+
+                m.add_child(folium.Marker(location=[lat, lon], popup=timesvisited))
+
+
+        folium.plugins.HeatMapWithTime(map_data_by_year, name = "HeatMap by Year", index= year_list.tolist(),
                                        min_opacity=heatmap_min_opacity,
                                        radius=heatmap_radius,
                                        gradient={0.2: 'blue', 0.4: 'lime', 0.6: 'orange', 1: 'red'}).add_to(m)
+
+        folium.LayerControl().add_to(m)
 
         return m
 
