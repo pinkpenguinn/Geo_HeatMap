@@ -150,6 +150,8 @@ class Generator:
                        zoom_start=map_zoom_start,
                        tiles=tiles)
 
+        folium.TileLayer(tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community').add_to(m)
+
         # Generate heat map
         heatmap = HeatMap(map_data,
                           max_val=self.max_magnitude,
@@ -159,6 +161,7 @@ class Generator:
                           max_zoom=heatmap_max_zoom)
 
         m.add_child(heatmap)
+        folium.LayerControl().add_to(m)
         return m
 
     def run(self, data_files, output_file, date_range, stream_data, tiles):
