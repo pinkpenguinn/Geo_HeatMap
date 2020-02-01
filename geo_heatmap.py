@@ -151,6 +151,9 @@ class Generator:
                        tiles=tiles)
 
         folium.TileLayer(tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community').add_to(m)
+        folium.TileLayer(tiles='Stamen Terrain').add_to(m)
+        folium.TileLayer('cartodbdark_matter').add_to(m)
+
 
         # Generate heat map
         heatmap = HeatMap(map_data,
