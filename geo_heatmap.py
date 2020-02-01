@@ -149,10 +149,11 @@ class Generator:
         m = folium.Map(location=self.max_coordinates,
                        zoom_start=map_zoom_start,
                        tiles=tiles)
+        world_imagery = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 
-        folium.TileLayer(tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community').add_to(m)
-        folium.TileLayer(tiles='Stamen Terrain').add_to(m)
-        folium.TileLayer('cartodbdark_matter').add_to(m)
+        folium.TileLayer(tiles= world_imagery, name="World Imagery", attr='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community').add_to(m)
+        folium.TileLayer(tiles='Stamen Terrain', name='Stamen Terrain').add_to(m)
+        folium.TileLayer('cartodbdark_matter', name='Dark Matter').add_to(m)
 
 
         # Generate heat map
