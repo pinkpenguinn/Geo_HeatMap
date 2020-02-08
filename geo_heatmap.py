@@ -18,6 +18,7 @@ import zipfile
 import datetime
 from folium.plugins import HeatMapWithTime
 import pandas as pd
+from folium.plugins import MarkerCluster
 
 
 class Generator:
@@ -151,12 +152,9 @@ class Generator:
     def generateMap(self, tiles, map_zoom_start=6, heatmap_radius=7,
                     heatmap_blur=4, heatmap_min_opacity=0.2,
                     heatmap_max_zoom=4):
+
         map_data = [(coords[0], coords[1], magnitude)
                     for coords, magnitude in self.coordinates.items()]
-
-        timesVisited = [x[2] for x in map_data]
-        timesVisited.sort(reverse=True)
-        top20Visited = timesVisited[19]
 
         map_data_with_year = [(coords[0], coords[1], magnitude, coords[2])
                               for coords, magnitude in self.coordinates.items()]
@@ -176,6 +174,14 @@ class Generator:
                        zoom_start=map_zoom_start,
                        tiles=tiles)
 
+        world_imagery = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+
+        folium.TileLayer(tiles=world_imagery, name="World Imagery",
+                         attr='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community').add_to(
+            m)
+        folium.TileLayer(tiles='Stamen Terrain', name='Stamen Terrain').add_to(m)
+        folium.TileLayer('cartodbdark_matter', name='Dark Matter').add_to(m)
+
         # Generate heat map
 
         heatmap = HeatMap(map_data,
@@ -187,21 +193,30 @@ class Generator:
 
         locator = Nominatim(user_agent="geocoder", timeout=None)
 
+        timesVisited = [x[2] for x in map_data]
+        timesVisited.sort(reverse=True)
+        top20Visited = timesVisited[19]
+
+        marker_group = folium.FeatureGroup(name="Markers")
+        mc = MarkerCluster()
 
         for lat, lon, freq in map_data:
             if freq >= top20Visited:
                 coordinates = lat, lon
                 location = locator.reverse(coordinates)
-                # address = location.address
-                timesvisited = location.address + "\nVisited " + str(freq) + " times"
 
-                m.add_child(folium.Marker(location=[lat, lon], popup=timesvisited))
+                times_visited = location.address + "\nVisited " + str(freq) + " times"
+
+                mc.add_child(folium.Marker(location=[lat, lon], popup=times_visited))
 
 
         folium.plugins.HeatMapWithTime(map_data_by_year, name = "HeatMap by Year", index= year_list.tolist(),
                                        min_opacity=heatmap_min_opacity,
                                        radius=heatmap_radius,
                                        gradient={0.2: 'blue', 0.4: 'lime', 0.6: 'orange', 1: 'red'}).add_to(m)
+
+        mc.add_to(marker_group)
+        marker_group.add_to(m)
 
         folium.LayerControl().add_to(m)
 
